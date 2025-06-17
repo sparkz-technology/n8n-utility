@@ -10,6 +10,9 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Serve public folder statically (for fallback audio)
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // Configure FFmpeg static binary
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -22,21 +25,25 @@ app.post('/generate-reel', upload.fields([
     { name: 'audio', maxCount: 1 }
 ]), async (req, res) => {
     try {
-        const image = req.files['image'][0];
-        const audio = req.files['audio'][0];
+        const image = req.files['image'] ? req.files['image'][0] : null;
+        const audio = req.files['audio'] ? req.files['audio'][0] : null;
 
-        if (!image || !audio) {
-            return res.status(400).send('Both image and audio files are required.');
+        if (!image) {
+            return res.status(400).send('Image file is required.');
         }
 
         // Generate temporary file paths
         const tmpImagePath = path.join(__dirname, `${uuidv4()}.jpg`);
-        const tmpAudioPath = path.join(__dirname, `${uuidv4()}.mp3`);
+        const tmpAudioPath = audio 
+            ? path.join(__dirname, `${uuidv4()}.mp3`) 
+            : path.join(__dirname, 'public', 'quiet-stars-ai.mp3');
         const tmpOutputPath = path.join(__dirname, `${uuidv4()}.mp4`);
 
         // Write memory buffers to temporary files
         fs.writeFileSync(tmpImagePath, image.buffer);
-        fs.writeFileSync(tmpAudioPath, audio.buffer);
+        if (audio) {
+            fs.writeFileSync(tmpAudioPath, audio.buffer);
+        }
 
         // Start ffmpeg processing
         ffmpeg()
@@ -56,7 +63,7 @@ app.post('/generate-reel', upload.fields([
                 res.download(tmpOutputPath, () => {
                     // Cleanup all temporary files
                     fs.unlinkSync(tmpImagePath);
-                    fs.unlinkSync(tmpAudioPath);
+                    if (audio) fs.unlinkSync(tmpAudioPath);
                     fs.unlinkSync(tmpOutputPath);
                 });
             })
@@ -64,7 +71,7 @@ app.post('/generate-reel', upload.fields([
                 console.error(err);
                 // Cleanup even on error
                 if (fs.existsSync(tmpImagePath)) fs.unlinkSync(tmpImagePath);
-                if (fs.existsSync(tmpAudioPath)) fs.unlinkSync(tmpAudioPath);
+                if (audio && fs.existsSync(tmpAudioPath)) fs.unlinkSync(tmpAudioPath);
                 res.status(500).send('Video processing failed.');
             });
 
