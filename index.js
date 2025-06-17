@@ -74,6 +74,10 @@ app.post('/generate-reel', upload.fields([
     }
 });
 
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
 app.listen(PORT, () => {
     console.log(`VIV API (stateless, Insta Reels) running on http://localhost:${PORT}`);
 });
