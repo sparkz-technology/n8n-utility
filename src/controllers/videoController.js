@@ -21,7 +21,6 @@ export async function handleGenerateVideo(req, res, next) {
         if (width !== undefined && (!Number.isInteger(width) || width <= 0)) {
             return res.status(400).json({ error: 'width must be a positive integer.' });
         }
-
         if (height !== undefined && (!Number.isInteger(height) || height <= 0)) {
             return res.status(400).json({ error: 'height must be a positive integer.' });
         }
@@ -32,7 +31,7 @@ export async function handleGenerateVideo(req, res, next) {
         let audioBuffer = null;
         if (audioUrl) {
             const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
-            audioBuffer = Buffer.from(audioResponse.data);
+            audioBuffer = audioResponse.data
         }
 
         const videoBuffer = await generateVideo(imageBuffer, {
@@ -50,4 +49,3 @@ export async function handleGenerateVideo(req, res, next) {
         next(error);
     }
 }
-
