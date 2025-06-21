@@ -12,15 +12,14 @@ export async function handleGenerateVideo(req, res, next) {
         const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(response.data);
 
-        const videoStream = generateVideo(imageBuffer, {
+        const videoBuffer = await generateVideo(imageBuffer, {
             width,
             height,
             duration: durationSeconds
         });
 
         res.setHeader('Content-Type', 'video/mp4');
-        videoStream.on('error', (err) => next(err));
-        videoStream.pipe(res, { end: true });
+        res.send(videoBuffer);
 
     } catch (error) {
         next(error);
