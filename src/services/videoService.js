@@ -1,6 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { Readable } from 'stream';
-import config from '../../config.js';
+import config from '../config.js';
 
 export function generateVideo(imageBuffer, options = {}) {
     const {

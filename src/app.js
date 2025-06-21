@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import router from './routes/index.js';
 import { errorMiddleware } from './middlewares/errorMiddleware.js';
 import { apiKeyMiddleware } from './middlewares/apiKeyMiddleware.js';
-import config from '../config.js';
+import config from './config.js';
 
 const app = express();
 

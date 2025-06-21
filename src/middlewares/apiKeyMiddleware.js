@@ -1,4 +1,4 @@
-import config from '../../config.js';
+import config from '../config.js';
 
 export function apiKeyMiddleware(req, res, next) {
     const apiKey = req.header('x-api-key');
