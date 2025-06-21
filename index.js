@@ -17,49 +17,51 @@ app.use(bodyParser.json({ limit: '1mb' }));
 
 // Log requests only in production
 if (NODE_ENV === 'production') {
-  app.use(morgan('combined'));
+    app.use(morgan('combined'));
 }
 
 // API Key middleware
 app.use((req, res, next) => {
-  const apiKey = req.header('x-api-key');
-  if (!apiKey || apiKey !== API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
-  }
-  next();
+    const apiKey = req.header('x-api-key');
+    if (!apiKey || apiKey !== API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
+    }
+    next();
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+    res.json({ status: 'ok' });
 });
 
 // Image generation endpoint
 app.post('/generate', async (req, res) => {
-  const { htmlContent } = req.body;
+    const { htmlContent, selector } = req.body;
+    if (!htmlContent) {
+        return res.status(400).json({ error: 'HTML content is required' });
+    }
+    if (!selector) {
+        return res.status(400).json({ error: 'Selector is required' });
+    }
 
-  if (!htmlContent) {
-    return res.status(400).json({ error: 'Missing htmlContent in request body' });
-  }
+    try {
+        const imageBuffer = await nodeHtmlToImage({
+            html: htmlContent,
+            type: 'png',
+            encoding: 'buffer',
+            quality: 100,
+            selector: selector,
+        });
 
-  try {
-    const imageBuffer = await nodeHtmlToImage({
-      html: htmlContent,
-      type: 'png',
-      encoding: 'buffer',
-      quality: 100,
-      selector: '.quote-card',
-    });
-
-    res.setHeader('Content-Type', 'image/png');
-    res.send(imageBuffer);
-  } catch (error) {
-    console.error('Image generation error:', error);
-    res.status(500).json({ error: 'Image generation failed' });
-  }
+        res.setHeader('Content-Type', 'image/png');
+        res.send(imageBuffer);
+    } catch (error) {
+        console.error('Image generation error:', error);
+        res.status(500).json({ error: 'Image generation failed' });
+    }
 });
 
 // Start server
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+    console.log(`Server running on port ${port}`);
 });
