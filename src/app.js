@@ -12,11 +12,15 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(morgan('combined'));
-
-// Apply API key middleware globally (protect entire API)
 app.use(apiKeyMiddleware);
-
 app.use('/api', router);
+
+// Handle 404
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'Not Found' });
+});
+
+// Error middleware
 app.use(errorMiddleware);
 
 app.get('/health', (req, res) => {
