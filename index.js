@@ -1,97 +1,65 @@
-const express = require('express');
-const multer = require('multer');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+import express from 'express';
+import bodyParser from 'body-parser';
+import nodeHtmlToImage from 'node-html-to-image';
+import cors from 'cors';
+import morgan from 'morgan';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;  // Use PORT env var for Render compatibility
+const API_KEY = process.env.API_KEY || 'my-secret-api-key';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-app.use('/public', express.static(path.join(__dirname, 'public')));
-ffmpeg.setFfmpegPath(ffmpegPath);
+// Middleware to enable CORS
+app.use(cors());
 
-// Use disk storage instead of memory storage
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            cb(null, path.join(__dirname, 'uploads'));
-        },
-        filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname);
-            cb(null, `${uuidv4()}${ext}`);
-        }
-    })
-});
+// Body parser middleware
+app.use(bodyParser.json({ limit: '1mb' }));
 
-// Ensure uploads directory exists
-if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
-    fs.mkdirSync(path.join(__dirname, 'uploads'));
+// Log requests only in production
+if (NODE_ENV === 'production') {
+  app.use(morgan('combined'));
 }
 
-app.post('/generate-reel', upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'audio', maxCount: 1 }
-]), async (req, res, next) => {
-    try {
-        const imageFile = req.files?.['image']?.[0];
-        const audioFile = req.files?.['audio']?.[0];
-
-        if (!imageFile) {
-            return res.status(400).json({ error: 'Image file is required.' });
-        }
-
-        const tmpImagePath = imageFile.path;
-        const tmpAudioPath = audioFile ? audioFile.path : path.join(__dirname, 'public', 'quiet-stars-ai.mp3');
-        const tmpOutputPath = path.join(__dirname, 'uploads', `${uuidv4()}.mp4`);
-
-        ffmpeg()
-            .input(tmpImagePath)
-            .loop(16)
-            .input(tmpAudioPath)
-            .videoCodec('libx264')
-            .audioCodec('aac')
-            .audioBitrate('192k')
-            .outputOptions([
-                '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black',
-                '-pix_fmt', 'yuv420p',
-                '-shortest'
-            ])
-            .save(tmpOutputPath)
-            .on('end', () => {
-                res.download(tmpOutputPath, () => {
-                    cleanupFiles([tmpImagePath, tmpOutputPath, audioFile?.path]);
-                });
-            })
-            .on('error', (err) => {
-                console.error('FFmpeg error:', err);
-                cleanupFiles([tmpImagePath, tmpOutputPath, audioFile?.path]);
-                next(new Error('Video processing failed.'));
-            });
-
-    } catch (err) {
-        next(err);
-    }
+// API Key middleware
+app.use((req, res, next) => {
+  const apiKey = req.header('x-api-key');
+  if (!apiKey || apiKey !== API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
+  }
+  next();
 });
 
+// Health check
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', service: 'VIV API', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok' });
 });
 
-app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
-});
+// Image generation endpoint
+app.post('/generate', async (req, res) => {
+  const { htmlContent } = req.body;
 
-function cleanupFiles(files) {
-    files.forEach(file => {
-        if (file && fs.existsSync(file)) {
-            try { fs.unlinkSync(file); } catch (e) { console.error(`Error deleting ${file}:`, e); }
-        }
+  if (!htmlContent) {
+    return res.status(400).json({ error: 'Missing htmlContent in request body' });
+  }
+
+  try {
+    const imageBuffer = await nodeHtmlToImage({
+      html: htmlContent,
+      type: 'png',
+      encoding: 'buffer',
+      quality: 100,
+      selector: '.quote-card',
     });
-}
 
-app.listen(PORT, () => {
-    console.log(`VIV API running on http://localhost:${PORT}`);
+    res.setHeader('Content-Type', 'image/png');
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error('Image generation error:', error);
+    res.status(500).json({ error: 'Image generation failed' });
+  }
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
