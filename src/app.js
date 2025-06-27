@@ -14,13 +14,12 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(morgan('combined'));
 
-// Apply global protection to ALL routes
 app.use(globalProtection({
   blockDuration: 48 * 3600, // 48 hours
   whitelist: ['127.0.0.1'],
   excludePaths: [],
   rateLimit: {
-    points: 200,       // 200 requests
+    points: 1,       // 200 requests
     duration: 60       // per minute
   }
 }));
