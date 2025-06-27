@@ -16,10 +16,10 @@ app.use(morgan('combined'));
 
 app.use(globalProtection({
   blockDuration: 48 * 3600, // 48 hours
-  whitelist: ['127.0.0.1'],
+  whitelist: ['127.0.0.1','223.178.86.102'],
   excludePaths: [],
   rateLimit: {
-    points: 1,       // 200 requests
+    points: 60,       // 200 requests
     duration: 60       // per minute
   }
 }));
