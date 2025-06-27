@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import router from './routes/index.js';
 import { errorMiddleware } from './middlewares/errorMiddleware.js';
 import { apiKeyMiddleware } from './middlewares/apiKeyMiddleware.js';
+import { globalProtection } from './middlewares/ipBlockerMiddleware.js';
 import config from './config.js';
 
 const app = express();
@@ -12,6 +13,17 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(morgan('combined'));
+
+// Apply global protection to ALL routes
+app.use(globalProtection({
+  blockDuration: 48 * 3600, // 48 hours
+  whitelist: ['127.0.0.1'],
+  excludePaths: [],
+  rateLimit: {
+    points: 200,       // 200 requests
+    duration: 60       // per minute
+  }
+}));
 
 app.use(apiKeyMiddleware);
 
