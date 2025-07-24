@@ -3,6 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
 import router from './routes/index.js';
+import axios from "axios";
 import { errorMiddleware } from './middlewares/errorMiddleware.js';
 import { apiKeyMiddleware } from './middlewares/apiKeyMiddleware.js';
 import { globalProtection } from './middlewares/ipBlockerMiddleware.js';
