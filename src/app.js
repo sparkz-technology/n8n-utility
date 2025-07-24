@@ -14,6 +14,28 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(morgan('combined'));
 
+const TARGET_API = 'https://api.llm7.io/v1/chat/completions';
+
+app.post('/proxy', async (req, res) => {
+  try {
+    // Forward the body received from client
+    const response = await axios.post(TARGET_API, req.body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${req?.body?.yourToken}` // if needed
+      }
+    });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      success: false,
+      message: error.message,
+      error: error.response?.data || null,
+    });
+  }
+});
+
 app.use(globalProtection({
   blockDuration: 48 * 3600, // 48 hours
   whitelist: ['127.0.0.1','223.178.86.102'],
