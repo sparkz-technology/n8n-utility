@@ -30,9 +30,10 @@ app.get('/proxy', async (req, res) => {
     const response = await axios.post(TARGET_API, req.body, {
       headers: axiosHeaders,
     });
-
+  c  onsole.warn(response,"response")
     res.status(200).json(response.data);
   } catch (error) {
+    console.warn(error,"error")
     res.status(error.response?.status || 500).json({
       success: false,
       message: error.message,
