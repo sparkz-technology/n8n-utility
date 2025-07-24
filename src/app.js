@@ -16,14 +16,18 @@ app.use(morgan('combined'));
 
 const TARGET_API = 'https://api.llm7.io/v1/chat/completions';
 
-app.post('/proxy', async (req, res) => {
+app.get('/proxy', async (req, res) => {
+  const authHeader = req.headers['authorization']; // full "Bearer xyz"
+
   try {
-    // Forward the body received from client
+    const axiosHeaders = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) {
+      axiosHeaders['Authorization'] = authHeader;
+    }
     const response = await axios.post(TARGET_API, req.body, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${req?.body?.yourToken}` // if needed
-      }
+      headers: axiosHeaders,
     });
 
     res.status(200).json(response.data);
